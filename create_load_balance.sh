@@ -7,17 +7,32 @@ if [ $EUID -ne 0 ] ; then
    exit 1
 fi
 
-source ~/creds/ayuwei-openrc.sh
+username='yuwei'
+private_net='192.168.0'
+public_net='10.10'
+vm1_pri_ip=${private_net}.16
+vm2_pri_ip=${private_net}.17
+vm1_pub_ip=${public_net}.21.109
+vm2_pub_ip=${public_net}.21.128
+echo $vm1_pri_ip
+echo $vm2_pri_ip
+echo $vm1_pub_ip
+echo $vm2_pub_ip
 
-private_subnet_id=$(neutron subnet-list | grep '172.16.0.0/24' | awk '{print $2}' )
-public_subnet_id=$(neutron subnet-list | grep '10.10' | awk '{print $2}' )
+echo ~/creds/${username}-openrc.sh
+source ~/creds/${username}-openrc.sh
+
+echo neutron subnet-list | grep ${private_net}
+
+private_subnet_id=$(neutron subnet-list | grep ${private_net} | awk '{print $2}' )
+public_subnet_id=$(neutron subnet-list | grep ${public_net} | awk '{print $2}' )
 echo $private_subnet_id
 echo $public_subnet_id
 
-port_ids[0]=$(neutron lbaas-loadbalancer-create --name l4_pri_lber $private_subnet_id | grep 'vip_port_id' | awk '{print $4}' )
-port_ids[1]=$(neutron lbaas-loadbalancer-create --name l4_pub_lber $public_subnet_id | grep 'vip_port_id' | awk '{print $4}' )
-port_ids[2]=$(neutron lbaas-loadbalancer-create --name l7_pri_lber $private_subnet_id | grep 'vip_port_id' | awk '{print $4}' )
-port_ids[3]=$(neutron lbaas-loadbalancer-create --name l7_pub_lber $public_subnet_id | grep 'vip_port_id' | awk '{print $4}' )
+port_ids[0]=$(neutron lbaas-loadbalancer-create --name l4_pri_lber ${private_subnet_id} | grep 'vip_port_id' | awk '{print $4}' )
+port_ids[1]=$(neutron lbaas-loadbalancer-create --name l4_pub_lber ${public_subnet_id} | grep 'vip_port_id' | awk '{print $4}' )
+port_ids[2]=$(neutron lbaas-loadbalancer-create --name l7_pri_lber ${private_subnet_id} | grep 'vip_port_id' | awk '{print $4}' )
+port_ids[3]=$(neutron lbaas-loadbalancer-create --name l7_pub_lber ${public_subnet_id} | grep 'vip_port_id' | awk '{print $4}' )
 
 neutron lbaas-listener-create --name l4_pri_ler --loadbalancer l4_pri_lber --protocol TCP --protocol-port 80
 neutron lbaas-listener-create --name l4_pub_ler --loadbalancer l4_pub_lber --protocol TCP --protocol-port 80
@@ -29,17 +44,17 @@ neutron lbaas-pool-create --name l4_pub_pool --listener l4_pub_ler --lb-algorith
 neutron lbaas-pool-create --name l7_pri_pool --listener l7_pri_ler --lb-algorithm ROUND_ROBIN --protocol HTTP
 neutron lbaas-pool-create --name l7_pub_pool --listener l7_pub_ler --lb-algorithm ROUND_ROBIN --protocol HTTP
 
-neutron lbaas-member-create --subnet $private_subnet_id --address 172.16.0.10 --protocol-port 80 l4_pri_pool
-neutron lbaas-member-create --subnet $private_subnet_id --address 172.16.0.11 --protocol-port 80 l4_pri_pool
+neutron lbaas-member-create --subnet $private_subnet_id --address ${vm1_pri_ip} --protocol-port 80 l4_pri_pool
+neutron lbaas-member-create --subnet $private_subnet_id --address ${vm2_pri_ip} --protocol-port 80 l4_pri_pool
 
-neutron lbaas-member-create --subnet $public_subnet_id --address 10.10.21.134 --protocol-port 80 l4_pub_pool
-neutron lbaas-member-create --subnet $public_subnet_id --address 10.10.21.139 --protocol-port 80 l4_pub_pool
+neutron lbaas-member-create --subnet $public_subnet_id --address ${vm1_pub_ip} --protocol-port 80 l4_pub_pool
+neutron lbaas-member-create --subnet $public_subnet_id --address ${vm2_pub_ip} --protocol-port 80 l4_pub_pool
 
-neutron lbaas-member-create --subnet $private_subnet_id --address 172.16.0.10 --protocol-port 80 l7_pri_pool
-neutron lbaas-member-create --subnet $private_subnet_id --address 172.16.0.11 --protocol-port 80 l7_pri_pool
+neutron lbaas-member-create --subnet $private_subnet_id --address ${vm1_pri_ip} --protocol-port 80 l7_pri_pool
+neutron lbaas-member-create --subnet $private_subnet_id --address ${vm2_pri_ip} --protocol-port 80 l7_pri_pool
 
-neutron lbaas-member-create --subnet $public_subnet_id --address 10.10.21.134 --protocol-port 80 l7_pub_pool
-neutron lbaas-member-create --subnet $public_subnet_id --address 10.10.21.139 --protocol-port 80 l7_pub_pool
+neutron lbaas-member-create --subnet $public_subnet_id --address ${vm1_pub_ip} --protocol-port 80 l7_pub_pool
+neutron lbaas-member-create --subnet $public_subnet_id --address ${vm2_pub_ip} --protocol-port 80 l7_pub_pool
 
 source ~/creds/admin-openrc.sh
 for (( i=0; i<=3; i++ ))
@@ -47,6 +62,6 @@ do
     neutron port-update --no-security-groups  --port_security_enabled=false ${port_ids[$i]}
 done
 
-source ~/creds/ayuwei-openrc.sh
-echo neutron lbaas-loadbalancer-list
+source ~/creds/${username}-openrc.sh
+neutron lbaas-loadbalancer-list
 
