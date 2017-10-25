@@ -8,12 +8,13 @@ if [ $EUID -ne 0 ] ; then
 fi
 
 username='yuwei'
-private_net='192.168.0'
-public_net='10.10'
-vm1_pri_ip=${private_net}.16
-vm2_pri_ip=${private_net}.17
-vm1_pub_ip=${public_net}.21.109
-vm2_pub_ip=${public_net}.21.128
+private_net='172.16.0'
+public_net='10.0'
+public_subnet='10.0.0'
+vm1_pri_ip=${private_net}.3
+vm2_pri_ip=${private_net}.5
+vm1_pub_ip=${public_net}.2.172
+vm2_pub_ip=${public_net}.2.173
 echo $vm1_pri_ip
 echo $vm2_pri_ip
 echo $vm1_pub_ip
@@ -25,7 +26,7 @@ source ~/creds/${username}-openrc.sh
 echo neutron subnet-list | grep ${private_net}
 
 private_subnet_id=$(neutron subnet-list | grep ${private_net} | awk '{print $2}' )
-public_subnet_id=$(neutron subnet-list | grep ${public_net} | awk '{print $2}' )
+public_subnet_id=$(neutron subnet-list | grep ${public_subnet} | awk '{print $2}' )
 echo $private_subnet_id
 echo $public_subnet_id
 
